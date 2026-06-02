@@ -1,0 +1,1139 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Birthday Rage Simulator: SHARK🦈 Edition</title>
+<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Orbitron:wght@400;700;900&family=Space+Grotesk:wght@300;400;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --pink: #ff4da6;
+    --purple: #b44dff;
+    --cyan: #00f5ff;
+    --bg: #080812;
+    --bg2: #0d0d1a;
+    --glass: rgba(255,255,255,0.05);
+    --glass-border: rgba(255,255,255,0.1);
+    --text: #e8e8ff;
+    --dim: #888aaa;
+    --green: #39ff14;
+    --red: #ff2244;
+    --orange: #ff8c00;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Share Tech Mono', monospace;
+    min-height: 100vh;
+    overflow-x: hidden;
+    position: relative;
+  }
+
+  /* PARTICLES */
+  #particles { position: fixed; top:0; left:0; width:100%; height:100%; pointer-events:none; z-index:0; overflow:hidden; }
+  .particle {
+    position: absolute;
+    font-size: 16px;
+    opacity: 0;
+    animation: floatUp 6s ease-in infinite;
+    user-select: none;
+  }
+  @keyframes floatUp {
+    0% { opacity:0; transform: translateY(100vh) rotate(0deg); }
+    10% { opacity:0.8; }
+    90% { opacity:0.4; }
+    100% { opacity:0; transform: translateY(-20px) rotate(360deg); }
+  }
+
+  /* SCREENS */
+  .screen {
+    display: none;
+    min-height: 100vh;
+    position: relative;
+    z-index: 1;
+    justify-content: center;
+    align-items: center;
+    flex-direction: column;
+    padding: 30px 20px;
+    text-align: center;
+  }
+  .screen.active { display: flex; }
+
+  /* GLASS PANEL */
+  .panel {
+    background: var(--glass);
+    border: 1px solid var(--glass-border);
+    backdrop-filter: blur(20px);
+    border-radius: 20px;
+    padding: 40px 35px;
+    max-width: 600px;
+    width: 100%;
+    box-shadow: 0 0 40px rgba(180,77,255,0.15), 0 0 80px rgba(0,245,255,0.05);
+    position: relative;
+    overflow: hidden;
+  }
+  .panel::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, var(--cyan), var(--purple), transparent);
+  }
+
+  /* TYPOGRAPHY */
+  .title {
+    font-family: 'Orbitron', sans-serif;
+    font-size: clamp(1.2rem, 4vw, 1.8rem);
+    font-weight: 900;
+    background: linear-gradient(135deg, var(--cyan), var(--pink), var(--purple));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    margin-bottom: 10px;
+    letter-spacing: 0.05em;
+  }
+  .subtitle {
+    color: var(--dim);
+    font-size: 0.85rem;
+    margin-bottom: 25px;
+    letter-spacing: 0.1em;
+  }
+  .body-text {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 1rem;
+    color: var(--text);
+    line-height: 1.7;
+    margin-bottom: 20px;
+  }
+
+  /* BUTTONS */
+  .btn {
+    display: inline-block;
+    padding: 12px 28px;
+    border: 1px solid;
+    border-radius: 10px;
+    cursor: pointer;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.9rem;
+    letter-spacing: 0.05em;
+    transition: all 0.2s;
+    position: relative;
+    overflow: hidden;
+    margin: 6px;
+    background: transparent;
+    user-select: none;
+  }
+  .btn-cyan { border-color: var(--cyan); color: var(--cyan); }
+  .btn-cyan:hover { background: var(--cyan); color: var(--bg); box-shadow: 0 0 20px var(--cyan); }
+  .btn-pink { border-color: var(--pink); color: var(--pink); }
+  .btn-pink:hover { background: var(--pink); color: white; box-shadow: 0 0 20px var(--pink); }
+  .btn-purple { border-color: var(--purple); color: var(--purple); }
+  .btn-purple:hover { background: var(--purple); color: white; box-shadow: 0 0 20px var(--purple); }
+  .btn-green { border-color: var(--green); color: var(--green); }
+  .btn-green:hover { background: var(--green); color: var(--bg); box-shadow: 0 0 20px var(--green); }
+  .btn-red { border-color: var(--red); color: var(--red); }
+  .btn-red:hover { background: var(--red); color: white; }
+
+  /* TERMINAL LOG */
+  .terminal {
+    background: rgba(0,0,0,0.5);
+    border: 1px solid #1a1a2e;
+    border-radius: 10px;
+    padding: 20px;
+    text-align: left;
+    font-size: 0.8rem;
+    color: var(--green);
+    margin: 20px 0;
+    max-height: 200px;
+    overflow-y: auto;
+    position: relative;
+  }
+  .terminal::before {
+    content: '● ● ●';
+    position: absolute;
+    top: 8px; left: 12px;
+    color: var(--red);
+    letter-spacing: 6px;
+    font-size: 0.6rem;
+  }
+  .log-line { margin-top: 4px; opacity: 0; animation: fadeIn 0.3s forwards; }
+  .log-line.ok { color: var(--green); }
+  .log-line.err { color: var(--red); }
+  .log-line.warn { color: var(--orange); }
+  .log-line.info { color: var(--cyan); }
+  @keyframes fadeIn { to { opacity:1; } }
+
+  /* PROGRESS BAR */
+  .progress-wrap { background: rgba(255,255,255,0.05); border-radius: 100px; height: 12px; margin: 20px 0; overflow:hidden; border: 1px solid var(--glass-border); }
+  .progress-bar { height: 100%; border-radius: 100px; background: linear-gradient(90deg, var(--cyan), var(--pink)); transition: width 0.5s; box-shadow: 0 0 10px var(--cyan); width: 0%; }
+  .progress-label { font-size: 0.8rem; color: var(--dim); text-align: right; margin-top: -5px; margin-bottom: 10px; }
+
+  /* TYPEWRITER */
+  .typewriter { overflow: hidden; white-space: nowrap; border-right: 2px solid var(--cyan); animation: typing 0.5s steps(30, end), blink 0.7s step-end infinite; }
+  @keyframes typing { from { width: 0; } to { width: 100%; } }
+  @keyframes blink { 0%,100% { border-color: transparent; } 50% { border-color: var(--cyan); } }
+
+  /* GLITCH */
+  .glitch { position: relative; }
+  .glitch::before, .glitch::after {
+    content: attr(data-text);
+    position: absolute; top:0; left:0; width:100%; height:100%;
+    background: transparent;
+    -webkit-background-clip: text;
+    background-clip: text;
+  }
+  .glitch::before { color: var(--pink); animation: glitch1 2s infinite; clip-path: polygon(0 0, 100% 0, 100% 35%, 0 35%); }
+  .glitch::after { color: var(--cyan); animation: glitch2 2s infinite; clip-path: polygon(0 65%, 100% 65%, 100% 100%, 0 100%); }
+  @keyframes glitch1 { 0%,100% { transform:translateX(0); } 20% { transform:translateX(-3px); } 40% { transform:translateX(3px); } }
+  @keyframes glitch2 { 0%,100% { transform:translateX(0); } 20% { transform:translateX(3px); } 40% { transform:translateX(-3px); } }
+
+  /* MEME POPUPS */
+  #meme-container { position: fixed; bottom: 20px; right: 20px; z-index: 999; display: flex; flex-direction: column; gap: 10px; pointer-events: none; }
+  .meme-popup {
+    background: var(--bg2);
+    border: 1px solid var(--pink);
+    border-radius: 14px;
+    padding: 12px 18px;
+    font-size: 0.85rem;
+    color: var(--pink);
+    max-width: 220px;
+    box-shadow: 0 0 20px rgba(255,77,166,0.3);
+    animation: popIn 0.3s ease, fadeOut 0.5s ease 3s forwards;
+    pointer-events: auto;
+  }
+  .meme-popup .meme-header { font-size: 0.65rem; color: var(--dim); margin-bottom: 4px; display: flex; align-items: center; gap: 6px; }
+  .meme-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--green); display: inline-block; }
+  @keyframes popIn { from { opacity:0; transform: translateX(50px) scale(0.8); } to { opacity:1; transform: translateX(0) scale(1); } }
+  @keyframes fadeOut { from { opacity:1; } to { opacity:0; pointer-events:none; height:0; padding:0; margin:0; border:0; } }
+
+  /* ACHIEVEMENT */
+  #achievement-container { position: fixed; top: 20px; left: 50%; transform: translateX(-50%); z-index: 999; display: flex; flex-direction: column; gap: 8px; align-items: center; pointer-events: none; width: 90%; max-width: 380px; }
+  .achievement {
+    background: linear-gradient(135deg, rgba(57,255,20,0.15), rgba(0,245,255,0.1));
+    border: 1px solid var(--green);
+    border-radius: 12px;
+    padding: 10px 18px;
+    font-size: 0.8rem;
+    color: var(--green);
+    box-shadow: 0 0 20px rgba(57,255,20,0.2);
+    animation: slideDown 0.4s ease, fadeOut 0.5s ease 3s forwards;
+    display: flex; align-items: center; gap: 10px;
+    width: 100%;
+  }
+  @keyframes slideDown { from { opacity:0; transform: translateY(-30px); } to { opacity:1; transform: translateY(0); } }
+
+  /* ESCAPE BUTTON */
+  #escape-btn {
+    position: fixed;
+    bottom: 20px;
+    left: 20px;
+    z-index: 998;
+    padding: 8px 16px;
+    border: 1px solid var(--dim);
+    color: var(--dim);
+    background: transparent;
+    border-radius: 8px;
+    cursor: pointer;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.75rem;
+    transition: all 0.2s;
+  }
+  #escape-btn:hover { border-color: var(--red); color: var(--red); }
+
+  /* FLASH OVERLAY */
+  #flash { position: fixed; top:0; left:0; width:100%; height:100%; pointer-events:none; z-index:9999; opacity:0; }
+  #flash.red { background: rgba(255,20,50,0.3); animation: flash 0.2s ease; }
+  #flash.white { background: rgba(255,255,255,0.7); animation: flash 0.3s ease; }
+  @keyframes flash { 0%,100% { opacity:0; } 50% { opacity:1; } }
+
+  /* FINAL SCREEN */
+  #screen-final .panel {
+    background: rgba(255,200,230,0.07);
+    border-color: rgba(255,150,200,0.3);
+    box-shadow: 0 0 60px rgba(255,100,180,0.2);
+  }
+  .final-title {
+    font-family: 'Orbitron', sans-serif;
+    font-size: clamp(1.5rem, 5vw, 2.5rem);
+    font-weight: 900;
+    background: linear-gradient(135deg, #ff9ed2, #ffb3e6, #d4a8ff);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    margin-bottom: 20px;
+    animation: gentlePulse 3s ease-in-out infinite;
+  }
+  @keyframes gentlePulse { 0%,100%{opacity:1;} 50%{opacity:0.85;} }
+  .final-msg {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 1.05rem;
+    line-height: 1.9;
+    color: #f0d0e8;
+    margin-bottom: 25px;
+  }
+
+  /* CONFETTI */
+  .confetti-piece {
+    position: fixed;
+    width: 10px; height: 10px;
+    top: -20px;
+    animation: confettiFall linear forwards;
+    z-index: 9998;
+    border-radius: 2px;
+    pointer-events: none;
+  }
+  @keyframes confettiFall {
+    to { transform: translateY(110vh) rotate(720deg); opacity:0; }
+  }
+
+  /* MOVING BUTTON */
+  #moving-btn-wrap { position: relative; width: 200px; height: 60px; margin: 20px auto; }
+  #moving-yes {
+    position: absolute;
+    padding: 12px 28px;
+    border: 1px solid var(--red);
+    color: var(--red);
+    background: transparent;
+    border-radius: 10px;
+    cursor: pointer;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.9rem;
+    transition: top 0.15s, left 0.15s;
+  }
+
+  /* CAPTCHA */
+  .captcha-opt {
+    display: inline-block;
+    padding: 10px 20px;
+    border: 1px solid var(--glass-border);
+    border-radius: 8px;
+    margin: 5px;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-size: 0.9rem;
+  }
+  .captcha-opt:hover { border-color: var(--cyan); color: var(--cyan); }
+  .captcha-opt.selected { background: var(--cyan); color: var(--bg); border-color: var(--cyan); }
+
+  /* WARNING BANNER */
+  .warning-bar {
+    background: rgba(255,34,68,0.15);
+    border: 1px solid var(--red);
+    border-radius: 8px;
+    padding: 10px 16px;
+    color: var(--red);
+    font-size: 0.8rem;
+    margin: 8px 0;
+    animation: warnFlash 1s ease infinite;
+  }
+  @keyframes warnFlash { 0%,100%{opacity:1;} 50%{opacity:0.5;} }
+
+  /* SCREEN GLITCH TRANSITION */
+  .glitch-overlay {
+    position: fixed; top:0; left:0; width:100%; height:100%;
+    z-index: 9997; pointer-events: none; opacity: 0;
+  }
+  .glitch-overlay.active { animation: glitchScreen 1.5s forwards; }
+  @keyframes glitchScreen {
+    0% { opacity:0; background: transparent; }
+    10% { opacity:1; background: rgba(0,245,255,0.1); clip-path: polygon(0 20%, 100% 20%, 100% 40%, 0 40%); }
+    20% { background: rgba(255,77,166,0.1); clip-path: polygon(0 60%, 100% 60%, 100% 80%, 0 80%); }
+    30% { background: rgba(180,77,255,0.2); }
+    40% { background: rgba(255,34,68,0.15); clip-path: polygon(0 0, 100% 0, 100% 20%, 0 20%); }
+    60% { opacity:0.5; }
+    100% { opacity:0; }
+  }
+
+  /* OVERLOAD SCREEN */
+  #screen-overload .panel { background: rgba(255,20,50,0.05); border-color: var(--red); }
+
+  /* RESPONSIVE */
+  @media (max-width: 500px) {
+    .panel { padding: 25px 18px; }
+    .btn { padding: 10px 18px; font-size: 0.8rem; }
+  }
+
+  /* STATUS BAR */
+  .status-bar {
+    position: fixed; top: 0; left:0; right:0;
+    background: rgba(0,0,0,0.8);
+    border-bottom: 1px solid var(--glass-border);
+    padding: 6px 20px;
+    font-size: 0.7rem;
+    color: var(--dim);
+    display: flex;
+    justify-content: space-between;
+    z-index: 100;
+    backdrop-filter: blur(10px);
+  }
+  .status-dot { color: var(--green); }
+
+  /* STEP INDICATOR */
+  .step-badge {
+    display: inline-block;
+    background: rgba(255,77,166,0.15);
+    border: 1px solid var(--pink);
+    border-radius: 20px;
+    padding: 3px 12px;
+    font-size: 0.7rem;
+    color: var(--pink);
+    margin-bottom: 15px;
+    letter-spacing: 0.1em;
+  }
+</style>
+</head>
+<body>
+
+<!-- PARTICLES -->
+<div id="particles"></div>
+
+<!-- FLASH OVERLAY -->
+<div id="flash"></div>
+
+<!-- GLITCH OVERLAY -->
+<div class="glitch-overlay" id="glitch-overlay"></div>
+
+<!-- STATUS BAR -->
+<div class="status-bar">
+  <span><span class="status-dot">●</span> SYSTEM ONLINE</span>
+  <span id="status-info">RAGE MODULE: LOADING...</span>
+  <span id="status-time">00:00</span>
+</div>
+
+<!-- MEME POPUPS -->
+<div id="meme-container"></div>
+
+<!-- ACHIEVEMENT CONTAINER -->
+<div id="achievement-container"></div>
+
+<!-- ESCAPE BUTTON -->
+<button id="escape-btn" onclick="handleEscape()">[ EXIT WEBSITE ]</button>
+
+<!-- ========== SCREEN 1: ENTRY ========== -->
+<div class="screen active" id="screen-1">
+  <div class="panel">
+    <div class="step-badge">STEP 01 / 14</div>
+    <div class="title glitch" data-text="BIRTHDAY RAGE SIMULATOR">BIRTHDAY RAGE SIMULATOR</div>
+    <div class="subtitle">SHARK🦈 EDITION — v6.9.0</div>
+    <div class="body-text">Before entering, confirm you are <strong style="color:var(--cyan)">not easily annoyed.</strong></div>
+    <div style="margin-top:10px;">
+      <button class="btn btn-cyan" onclick="entry('patient')">Yes I am patient</button>
+      <button class="btn btn-pink" onclick="entry('handle')">I can handle anything</button>
+      <button class="btn btn-purple" onclick="entry('regret')">I regret clicking this</button>
+    </div>
+    <div id="entry-response" style="margin-top:18px;color:var(--orange);font-size:0.85rem;min-height:20px;"></div>
+  </div>
+</div>
+
+<!-- ========== SCREEN 2: FAKE VERIFICATION ========== -->
+<div class="screen" id="screen-2">
+  <div class="panel">
+    <div class="step-badge">STEP 02 / 14</div>
+    <div class="title">VERIFICATION SYSTEM</div>
+    <div class="subtitle">PLEASE STAND BY</div>
+    <div class="terminal" id="verify-log">
+      <div style="height:18px;"></div>
+    </div>
+    <div id="verify-result" style="display:none; margin-top:15px;">
+      <div style="color:var(--green);font-size:1.1rem;letter-spacing:0.1em;">✓ ACCESS GRANTED</div>
+      <div style="color:var(--dim);font-size:0.75rem;margin-top:5px;">(reluctantly)</div>
+      <button class="btn btn-green" onclick="goTo(3)" style="margin-top:20px;">PROCEED →</button>
+    </div>
+  </div>
+</div>
+
+<!-- ========== SCREEN 3: RAGEBAIT BUTTON ========== -->
+<div class="screen" id="screen-3">
+  <div class="panel">
+    <div class="step-badge">STEP 03 / 14</div>
+    <div class="title">BIRTHDAY SURPRISE</div>
+    <div class="subtitle">MAKE YOUR CHOICE (it doesn't matter)</div>
+    <div class="body-text">Do you want your birthday surprise?</div>
+    <button class="btn btn-cyan" onclick="rageBait('yes')">Yes</button>
+    <button class="btn btn-pink" onclick="rageBait('no')">No</button>
+    <div id="ragebait-response" style="margin-top:18px;min-height:40px;"></div>
+  </div>
+</div>
+
+<!-- ========== SCREEN 4: MOVING BUTTON ========== -->
+<div class="screen" id="screen-4">
+  <div class="panel">
+    <div class="step-badge">STEP 04 / 14</div>
+    <div class="title">HONESTY CHECK</div>
+    <div class="subtitle">ANSWER CAREFULLY</div>
+    <div class="body-text">Are you happy today?</div>
+
+    <button class="btn btn-cyan" onclick="clickNo()" style="margin-top:10px;">Yes</button>
+    <div id="moving-btn-wrap" style="position:relative;width:100%;height:70px;margin:20px auto;"></div>
+    <button id="moving-yes" onmouseover="moveButton()" onclick="catchedMoving()" style="position:absolute;left:50%;transform:translateX(-50%);">No</button>
+    </div>
+
+    <div id="moving-response" style="margin-top:15px;min-height:30px;font-size:0.85rem;color:var(--orange);"></div>
+  </div>
+</div>
+
+<!-- ========== SCREEN 5: FAKE LOADING ========== -->
+<div class="screen" id="screen-5">
+  <div class="panel">
+    <div class="step-badge">STEP 05 / 14</div>
+    <div class="title">LOADING EXPERIENCE</div>
+    <div class="progress-wrap"><div class="progress-bar" id="prog-bar"></div></div>
+    <div class="progress-label" id="prog-label">0%</div>
+    <div id="loading-msg" class="body-text" style="color:var(--dim);">Initializing birthday module...</div>
+  </div>
+</div>
+
+<!-- ========== SCREEN 6: (no screen, memes run continuously) ========== -->
+
+<!-- ========== SCREEN 7: FAKE CAPTCHA ========== -->
+<div class="screen" id="screen-7">
+  <div class="panel">
+    <div class="step-badge">STEP 07 / 14</div>
+    <div class="title">CAPTCHA VERIFICATION</div>
+    <div class="subtitle">Prove you are human AND birthday girl</div>
+
+    <div id="captcha-q1" class="captcha-block" style="margin:20px 0;">
+      <div class="body-text" style="font-size:0.9rem;margin-bottom:8px;">Q1: What is 2 + 2?</div>
+      <span class="captcha-opt" onclick="captchaAnswer(1,'a')">3</span>
+      <span class="captcha-opt" onclick="captchaAnswer(1,'b')">4</span>
+      <span class="captcha-opt" onclick="captchaAnswer(1,'c')">5</span>
+      <span class="captcha-opt" onclick="captchaAnswer(1,'d')">potato</span>
+    </div>
+
+    <div id="captcha-q2" class="captcha-block" style="margin:20px 0;">
+      <div class="body-text" style="font-size:0.9rem;margin-bottom:8px;">Q2: Are you tired of this website?</div>
+      <span class="captcha-opt" onclick="captchaAnswer(2,'a')">Yes</span>
+      <span class="captcha-opt" onclick="captchaAnswer(2,'b')">No</span>
+    </div>
+
+    <div id="captcha-q3" class="captcha-block" style="margin:20px 0;">
+      <div class="body-text" style="font-size:0.9rem;margin-bottom:8px;">Q3: Select the correct answer:</div>
+      <span class="captcha-opt" onclick="captchaAnswer(3,'a')">birthday</span>
+      <span class="captcha-opt" onclick="captchaAnswer(3,'b')">birthday</span>
+      <span class="captcha-opt" onclick="captchaAnswer(3,'c')">birthday</span>
+    </div>
+
+    <div id="captcha-result" style="min-height:30px;margin-top:10px;"></div>
+    <button class="btn btn-cyan" onclick="submitCaptcha()" style="margin-top:15px;">Submit Verification</button>
+  </div>
+</div>
+
+<!-- ========== SCREEN 8: SYSTEM ERROR MODE ========== -->
+<div class="screen" id="screen-8">
+  <div class="panel">
+    <div class="step-badge">STEP 08 / 14</div>
+    <div class="title" style="color:var(--red);-webkit-text-fill-color:var(--red);">⚠ SYSTEM WARNINGS</div>
+    <div id="warnings-list" style="margin:20px 0;"></div>
+    <div id="screen8-proceed" style="display:none;margin-top:15px;">
+      <div style="color:var(--dim);font-size:0.8rem;margin-bottom:15px;">Warnings acknowledged. Continuing anyway.</div>
+      <button class="btn btn-orange" onclick="goTo(9)" style="border-color:var(--orange);color:var(--orange);">ACKNOWLEDGE & CONTINUE</button>
+    </div>
+  </div>
+</div>
+
+<!-- ========== SCREEN 9: ESCAPE TRAP ========== -->
+<div class="screen" id="screen-9">
+  <div class="panel">
+    <div class="step-badge">STEP 09 / 14</div>
+    <div class="title">SYSTEM NOTICE</div>
+    <div class="body-text">You have been trying to navigate this experience.<br>One final attempt to escape:</div>
+    <button class="btn btn-red" onclick="escapeTrap()" style="margin-top:10px;font-size:1rem;padding:15px 35px;">EXIT WEBSITE</button>
+    <div id="escape-trap-msg" style="margin-top:20px;min-height:40px;"></div>
+  </div>
+</div>
+
+<!-- ========== SCREEN 10: ACHIEVEMENTS ========== -->
+<div class="screen" id="screen-10">
+  <div class="panel">
+    <div class="step-badge">STEP 10 / 14</div>
+    <div class="title">🏆 ACHIEVEMENTS UNLOCKED</div>
+    <div class="subtitle">YOUR PERFORMANCE REVIEW</div>
+    <div id="achievements-list" style="margin:20px 0;text-align:left;"></div>
+    <button class="btn btn-green" onclick="goTo(11)" style="margin-top:15px;">PROCEED TO FINAL BOSS →</button>
+  </div>
+</div>
+
+<!-- ========== SCREEN 11: FINAL BOSS ========== -->
+<div class="screen" id="screen-11">
+  <div class="panel">
+    <div class="step-badge">STEP 11 / 14</div>
+    <div class="title">FINAL BOSS STAGE</div>
+    <div class="subtitle">LOCATE YOUR BIRTHDAY MESSAGE</div>
+    <div class="body-text">Find the button that leads to your birthday message.</div>
+    <div style="margin:15px 0;">
+      <button class="btn btn-cyan" onclick="finalBoss('A')">Button A</button>
+      <button class="btn btn-pink" onclick="finalBoss('B')">Button B</button>
+      <button class="btn btn-purple" onclick="finalBoss('C')">Button C</button>
+    </div>
+    <div style="margin-top:10px;">
+      <button class="btn btn-cyan" onclick="finalBoss('D')">Not this one</button>
+      <button class="btn btn-pink" onclick="finalBoss('E')">Definitely not this</button>
+    </div>
+    <div id="boss-msg" style="margin-top:15px;min-height:30px;font-size:0.85rem;color:var(--purple);"></div>
+  </div>
+</div>
+
+<!-- ========== SCREEN 12: OVERLOAD TRANSITION ========== -->
+<div class="screen" id="screen-overload">
+  <div class="panel">
+    <div class="title" id="overload-text" style="-webkit-text-fill-color:var(--red);color:var(--red);">SYSTEM OVERLOAD...</div>
+    <div class="terminal" id="overload-log"><div style="height:18px;"></div></div>
+    <div id="overload-switch" style="display:none;margin-top:20px;color:var(--pink);font-size:0.9rem;letter-spacing:0.1em;"></div>
+  </div>
+</div>
+
+<!-- ========== SCREEN FINAL: BIRTHDAY MESSAGE ========== -->
+<div class="screen" id="screen-final">
+  <div class="panel">
+    <div class="final-title">Happy Birthday 🎂</div>
+    <div id="final-typewriter" class="final-msg" style="opacity:0;transition:opacity 1s;"></div>
+    <div id="final-sig" style="opacity:0;transition:opacity 1s;color:var(--dim);font-size:0.85rem;margin-top:10px;"></div>
+  </div>
+</div>
+
+<!-- ========== SCREEN END ========== -->
+<div class="screen" id="screen-end">
+  <div class="panel">
+    <div class="title">Mission Complete 🎉</div>
+    <div class="subtitle">YOU SURVIVED BIRTHDAY RAGE SIMULATOR</div>
+    <div class="body-text" style="margin:20px 0;">Thanks for surviving Birthday Rage Simulator.<br><span style="color:var(--dim);font-size:0.85rem;">You are officially certified patient.</span></div>
+    <button class="btn btn-pink" onclick="replayChaos()" style="margin:6px;">↺ Replay Chaos</button>
+    <button class="btn btn-cyan" onclick="exitFinal()" style="margin:6px;">Exit →</button>
+    <div id="exit-msg" style="margin-top:15px;min-height:20px;color:var(--dim);font-size:0.8rem;"></div>
+  </div>
+</div>
+
+<script>
+// ============================================================
+// STATE
+// ============================================================
+let currentScreen = 1;
+let clickCount = 0;
+let memeInterval = null;
+let achievementsEarned = [];
+let captchaAnswers = {};
+let bossClickCount = 0;
+let escapeTried = false;
+let startTime = Date.now();
+
+// ============================================================
+// PARTICLES
+// ============================================================
+const emojis = ['💜','🩷','⭐','✨','💫','🌸','💥','🎂','🎉','🦈','🦈','🦈','🦈'];
+function spawnParticles() {
+  const container = document.getElementById('particles');
+  for (let i = 0; i < 18; i++) {
+    setTimeout(() => {
+      const p = document.createElement('div');
+      p.className = 'particle';
+      p.textContent = emojis[Math.floor(Math.random()*emojis.length)];
+      p.style.left = Math.random()*100 + 'vw';
+      p.style.animationDelay = Math.random()*4 + 's';
+      p.style.animationDuration = (5+Math.random()*4) + 's';
+      p.style.fontSize = (12+Math.random()*14) + 'px';
+      container.appendChild(p);
+      setTimeout(() => p.remove(), 10000);
+    }, i*300);
+  }
+}
+setInterval(spawnParticles, 5000);
+spawnParticles();
+
+// ============================================================
+// STATUS BAR
+// ============================================================
+setInterval(() => {
+  const el = document.getElementById('status-time');
+  const s = Math.floor((Date.now()-startTime)/1000);
+  el.textContent = `${String(Math.floor(s/60)).padStart(2,'0')}:${String(s%60).padStart(2,'0')}`;
+}, 1000);
+
+// ============================================================
+// MEME POPUPS
+// ============================================================
+const memes = [
+  { from: 'System Alert', msg: 'edi wow' },
+  { from: 'Notification', msg: 'sana all 😭' },
+  { from: 'System', msg: 'HAPIII BURTDIII' },
+  { from: 'Notification', msg: 'stay humble, graham ball' },
+  { from: 'Messenger', msg: 'SHAaAaAaAaAaAaAa' },
+  { from: 'System Alert', msg: 'charot lang naman' },
+  { from: 'Patience Monitor', msg: 'di ka pa ba pagod? 😭' },
+  { from: 'System', msg: 'wag ka mapagod teh ha' },
+  { from: 'Rage Meter', msg: 'tangina na rin 💀' },
+  { from: 'Alert', msg: 'grabe ka ha' },
+  { from: 'System', msg: 'lowkey nakakainis no' },
+  { from: 'Birthday Bot', msg: '🎂 bday girl detected' },
+];
+
+function showMeme() {
+  const m = memes[Math.floor(Math.random()*memes.length)];
+  const container = document.getElementById('meme-container');
+  const div = document.createElement('div');
+  div.className = 'meme-popup';
+  div.innerHTML = `<div class="meme-header"><span class="meme-dot"></span>${m.from}</div>${m.msg}`;
+  container.appendChild(div);
+  setTimeout(() => div.remove(), 5000);
+}
+
+function startMemes() {
+  if (memeInterval) return;
+  memeInterval = setInterval(showMeme, 3500);
+  showMeme();
+}
+
+
+
+// ============================================================
+// ACHIEVEMENTS
+// ============================================================
+function unlockAchievement(title, icon='🏆') {
+  if (achievementsEarned.includes(title)) return;
+  achievementsEarned.push(title);
+  const container = document.getElementById('achievement-container');
+  const div = document.createElement('div');
+  div.className = 'achievement';
+  div.innerHTML = `<span style="font-size:1.2rem;">${icon}</span><div><div style="font-size:0.75rem;color:var(--dim);">Achievement Unlocked</div><div>${title}</div></div>`;
+  container.appendChild(div);
+  setTimeout(() => div.remove(), 4000);
+}
+
+// ============================================================
+// FLASH
+// ============================================================
+function flash(type='red') {
+  const el = document.getElementById('flash');
+  el.className = type;
+  setTimeout(() => el.className = '', 400);
+}
+
+// ============================================================
+// SCREEN NAVIGATION
+// ============================================================
+function goTo(n) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  const target = document.getElementById('screen-' + n) || document.getElementById('screen-overload') || document.getElementById('screen-final') || document.getElementById('screen-end');
+  if (n === 'overload') document.getElementById('screen-overload').classList.add('active');
+  else if (n === 'final') document.getElementById('screen-final').classList.add('active');
+  else if (n === 'end') document.getElementById('screen-end').classList.add('active');
+  else document.getElementById('screen-' + n).classList.add('active');
+  currentScreen = n;
+  window.scrollTo(0,0);
+
+  document.getElementById('status-info').textContent = `STAGE: ${n}/14`;
+  clickCount++;
+
+  if (clickCount >= 10) unlockAchievement('Survived 10 Ragebait Clicks','💀');
+}
+
+// ============================================================
+// SCREEN 1: ENTRY
+// ============================================================
+function entry(choice) {
+  const msgs = {
+    patient: 'Noted. Patience level: questionable. Proceeding anyway.',
+    handle: 'Bold statement. We will test that claim.',
+    regret: '"Too late." — System',
+  };
+  const el = document.getElementById('entry-response');
+  el.textContent = msgs[choice];
+  setTimeout(() => {
+    startMemes();
+    goTo(2);
+    startVerification();
+  }, 1500);
+}
+
+// ============================================================
+// SCREEN 2: VERIFICATION
+// ============================================================
+const verifyLogs = [
+  { text: '> Initializing chaos module...', cls:'info', delay:300 },
+  { text: '> Checking patience level...', cls:'warn', delay:800 },
+  { text: '> Scanning emotional stability...', cls:'warn', delay:1400 },
+  { text: '> Loading birthday.exe...', cls:'info', delay:2000 },
+  { text: '> CAUTION: High cringe levels detected', cls:'err', delay:2600 },
+  { text: '> Overriding safety protocols...', cls:'err', delay:3200 },
+  { text: '> Birthday rage module: LOADED ✓', cls:'ok', delay:3800 },
+  { text: '> Access determination: pending...', cls:'warn', delay:4400 },
+];
+
+function startVerification() {
+  const log = document.getElementById('verify-log');
+  verifyLogs.forEach(({text, cls, delay}) => {
+    setTimeout(() => {
+      const line = document.createElement('div');
+      line.className = `log-line ${cls}`;
+      line.textContent = text;
+      log.appendChild(line);
+      log.scrollTop = log.scrollHeight;
+    }, delay);
+  });
+  setTimeout(() => {
+    document.getElementById('verify-result').style.display = 'block';
+  }, 5000);
+}
+
+// ============================================================
+// SCREEN 3: RAGEBAIT
+// ============================================================
+function rageBait(choice) {
+  const el = document.getElementById('ragebait-response');
+  if (choice === 'yes') {
+    el.innerHTML = '<span style="color:var(--red)">Wrong choice.</span><br><span style="color:var(--dim);font-size:0.8rem;">Try the other one.</span>';
+    flash('red');
+  } else {
+    el.innerHTML = '<span style="color:var(--green)">Correct…</span><br><span style="color:var(--dim);font-size:0.8rem;">but you still get it anyway.</span>';
+    unlockAchievement('Chose Correctly (It Didn\'t Matter)','🎯');
+    setTimeout(() => goTo(4), 1800);
+  }
+}
+
+// ============================================================
+// SCREEN 4: MOVING BUTTON
+// ============================================================
+let moveTimeout;
+const movingBtn = () => document.getElementById('moving-yes');
+
+function moveButton() {
+  const btn = movingBtn();
+  const parent = btn.parentElement;
+  const pw = parent.offsetWidth;
+  const ph = parent.offsetHeight || 70;
+  const bw = btn.offsetWidth;
+  const bh = btn.offsetHeight;
+  const maxX = pw - bw;
+  const maxY = Math.max(0, ph - bh);
+  const nx = Math.random() * maxX;
+  const ny = Math.random() * maxY;
+  btn.style.left = nx + 'px';
+  btn.style.top = ny + 'px';
+  btn.style.transform = 'none';
+}
+
+function catchedMoving() {
+  document.getElementById('moving-response').innerHTML = '<span style="color:var(--red)">Liar detected.</span> 🚨';
+  unlockAchievement('Caught the Moving Button','🏃');
+  flash('red');
+  setTimeout(() => goTo(5), 1500);
+  startFakeLoading();
+}
+
+function clickNo() {
+  document.getElementById('moving-response').textContent = 'Okay. Fair enough. Proceeding.';
+  setTimeout(() => goTo(5), 1500);
+  startFakeLoading();
+}
+
+// ============================================================
+// SCREEN 5: FAKE LOADING
+// ============================================================
+const loadingMsgs = [
+  'Initializing birthday module...',
+  'Calculating your patience score...',
+  'Downloading meme database...',
+  'Uploading your chaos tolerance...',
+  'Buffering surprise...',
+  'We are testing your patience…',
+  'Almost there (not really)...',
+  'Reversing progress because why not...',
+  'Final checks... maybe...',
+];
+
+const progressSteps = [0, 12, 34, 87, 5, 99, 1, 66, 100];
+let progressIdx = 0;
+
+function startFakeLoading() {
+  progressIdx = 0;
+  runProgress();
+}
+
+function runProgress() {
+  if (progressIdx >= progressSteps.length) {
+    setTimeout(() => goTo(7), 800);
+    return;
+  }
+  const pct = progressSteps[progressIdx];
+  document.getElementById('prog-bar').style.width = pct + '%';
+  document.getElementById('prog-label').textContent = pct + '%';
+  document.getElementById('loading-msg').textContent = loadingMsgs[Math.min(progressIdx, loadingMsgs.length-1)];
+  progressIdx++;
+  const delay = pct === 99 ? 1500 : pct === 87 ? 800 : 700;
+  setTimeout(runProgress, delay);
+}
+
+// ============================================================
+// SCREEN 7: CAPTCHA
+// ============================================================
+function captchaAnswer(q, opt) {
+  captchaAnswers[q] = opt;
+  document.querySelectorAll(`#captcha-q${q} .captcha-opt`).forEach(el => el.classList.remove('selected'));
+  event.target.classList.add('selected');
+}
+
+function submitCaptcha() {
+  if (Object.keys(captchaAnswers).length < 3) {
+    document.getElementById('captcha-result').innerHTML = '<span style="color:var(--red)">Please answer all questions.</span>';
+    return;
+  }
+  const correct = Math.random() > 0.5;
+  const el = document.getElementById('captcha-result');
+  if (correct) {
+    el.innerHTML = '<span style="color:var(--green)">✓ Verification successful. Somehow.</span>';
+  } else {
+    el.innerHTML = '<span style="color:var(--red)">✗ Wrong. Try again.</span><br><span style="color:var(--dim);font-size:0.8rem;">Just kidding — proceeding anyway.</span>';
+    flash('red');
+  }
+  unlockAchievement('Completed the Useless Captcha','🤖');
+  setTimeout(() => goTo(8), 1800);
+  startWarnings();
+}
+
+// ============================================================
+// SCREEN 8: WARNINGS
+// ============================================================
+const warningTexts = [
+  '⚠ Emotional Damage Detected',
+  '⚠ Cringe levels rising rapidly',
+  '⚠ User attempting escape — BLOCKED',
+  '⚠ Emotion firewall activated',
+  '⚠ Patience reserves critically low',
+  '⚠ Error: Enabling may chance ba akez? hihi module',
+];
+
+function startWarnings() {
+  const list = document.getElementById('warnings-list');
+  warningTexts.forEach((w, i) => {
+    setTimeout(() => {
+      flash('red');
+      const div = document.createElement('div');
+      div.className = 'warning-bar';
+      div.textContent = w;
+      list.appendChild(div);
+      if (i === warningTexts.length - 1) {
+        setTimeout(() => {
+          document.getElementById('screen8-proceed').style.display = 'block';
+        }, 600);
+      }
+    }, i * 700);
+  });
+}
+
+// ============================================================
+// SCREEN 9: ESCAPE TRAP
+// ============================================================
+function escapeTrap() {
+  const el = document.getElementById('escape-trap-msg');
+  el.innerHTML = '<span style="color:var(--red)">Access denied.</span>';
+  flash('red');
+  setTimeout(() => {
+    el.innerHTML = '<span style="color:var(--red)">Access denied.</span><br><br><span style="color:var(--green)">Just kidding.</span><br><span style="color:var(--dim);font-size:0.8rem;">You were never escaping anyway.</span>';
+    unlockAchievement('Tried to Escape — Failed Gloriously','🚪');
+    setTimeout(() => goTo(10), 2000);
+    buildAchievements();
+  }, 1500);
+}
+
+function handleEscape() {
+  if (!escapeTried) {
+    escapeTried = true;
+    const msg = document.createElement('div');
+    msg.className = 'meme-popup';
+    msg.innerHTML = '<div class="meme-header"><span class="meme-dot"></span>System</div>Nice try lol 😭';
+    document.getElementById('meme-container').appendChild(msg);
+    setTimeout(() => msg.remove(), 3500);
+  } else {
+    const msg = document.createElement('div');
+    msg.className = 'meme-popup';
+    msg.innerHTML = '<div class="meme-header"><span class="meme-dot"></span>System</div>You cant escape bruh💀';
+    document.getElementById('meme-container').appendChild(msg);
+    setTimeout(() => msg.remove(), 3500);
+  }
+}
+
+// ============================================================
+// SCREEN 10: ACHIEVEMENTS
+// ============================================================
+const allAchievements = [
+  { title: 'Survived 10 Ragebait Clicks', icon: '💀', desc: 'You have exceptional pain tolerance.' },
+  { title: 'Professional Patience Tester', icon: '🧘', desc: 'Certified by the Rage Simulator Institute.' },
+  { title: 'Rage Exposure Complete', icon: '😡', desc: '100% Rage immunity achieved.' },
+  { title: 'Confusion Level: 100%', icon: '😵‍💫', desc: 'Cognitive chaos fully achieved.' },
+  { title: 'Survived the Loading Screen', icon: '⏳', desc: 'You waited through absolute nonsense.' },
+];
+
+function buildAchievements() {
+  const list = document.getElementById('achievements-list');
+  list.innerHTML = '';
+  allAchievements.forEach((a, i) => {
+    setTimeout(() => {
+      const div = document.createElement('div');
+      div.style.cssText = 'display:flex;align-items:center;gap:12px;padding:12px;border:1px solid rgba(57,255,20,0.2);border-radius:10px;margin:8px 0;background:rgba(57,255,20,0.05);';
+      div.innerHTML = `<span style="font-size:1.5rem;">${a.icon}</span><div><div style="color:var(--green);font-size:0.85rem;">${a.title}</div><div style="color:var(--dim);font-size:0.75rem;">${a.desc}</div></div>`;
+      list.appendChild(div);
+    }, i*300);
+  });
+  unlockAchievement('Confusion Level: 100%','😵‍💫');
+  unlockAchievement('Rage Exposure Complete','😡');
+  unlockAchievement('Professional Patience Tester','🧘');
+}
+
+// ============================================================
+// SCREEN 11: FINAL BOSS
+// ============================================================
+const bossMsgs = [
+  'Nope. Try again.',
+  'Also wrong. Keep going.',
+  'Getting warmer… (not really)',
+  'All roads lead to the same place.',
+  'You were never escaping anyway.',
+];
+
+function finalBoss(btn) {
+  bossClickCount++;
+  const el = document.getElementById('boss-msg');
+  if (bossClickCount >= 3) {
+    el.innerHTML = '<span style="color:var(--purple)">You were never escaping anyway.</span>';
+    unlockAchievement('Defeated the Final Boss (No Choices Matter)','⚔️');
+    setTimeout(() => startOverload(), 1500);
+  } else {
+    el.textContent = bossMsgs[Math.min(bossClickCount-1, bossMsgs.length-1)];
+    flash('red');
+  }
+}
+
+// ============================================================
+// SCREEN 12: OVERLOAD TRANSITION
+// ============================================================
+const overloadLogs = [
+  { text: '> SYSTEM OVERLOAD DETECTED', cls:'err' },
+  { text: '> Chaos module: shutting down...', cls:'warn' },
+  { text: '> Rage subroutines: disabled', cls:'ok' },
+  { text: '> Loading birthday.final.exe...', cls:'info' },
+  { text: '> Switching to birthday mode...', cls:'ok' },
+  { text: '> ████████████ 100%', cls:'ok' },
+];
+
+function startOverload() {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById('screen-overload').classList.add('active');
+
+  const overlay = document.getElementById('glitch-overlay');
+  overlay.classList.add('active');
+  setTimeout(() => overlay.classList.remove('active'), 1600);
+
+  const log = document.getElementById('overload-log');
+  overloadLogs.forEach(({text, cls}, i) => {
+    setTimeout(() => {
+      flash(i%2===0?'red':'white');
+      const line = document.createElement('div');
+      line.className = `log-line ${cls}`;
+      line.textContent = text;
+      log.appendChild(line);
+      log.scrollTop = log.scrollHeight;
+    }, i*500);
+  });
+
+  setTimeout(() => {
+    const sw = document.getElementById('overload-switch');
+    sw.style.display = 'block';
+    sw.innerHTML = '<span style="color:var(--pink);letter-spacing:0.1em;">✓ Birthday mode activated. Switching now...</span>';
+    setTimeout(() => {
+      document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+      document.getElementById('screen-final').classList.add('active');
+      startFinalScreen();
+      stopMemes();
+    }, 1500);
+  }, 3500);
+}
+
+// ============================================================
+// FINAL SCREEN
+// ============================================================
+const finalMessage = `I made this website just to make you smile and annoy you a little at the same time 😭\n\nThanks for always being someone I enjoy talking to online.\n\nI hope your day is really good, and your year even better.\n\nNo pressure, just genuinely wishing you happiness today. 🌸`;
+
+function startFinalScreen() {
+  setTimeout(() => {
+    const el = document.getElementById('final-typewriter');
+    el.style.opacity = '1';
+    typewriterEffect(el, finalMessage, 30, () => {
+      document.getElementById('final-sig').style.opacity = '1';
+      document.getElementById('final-sig').textContent = '— Made with chaos and genuine care 💜';
+      spawnConfetti();
+      setTimeout(() => {
+        document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+        document.getElementById('screen-end').classList.add('active');
+      }, 7000);
+    });
+  }, 800);
+}
+
+function typewriterEffect(el, text, speed, callback) {
+  let i = 0;
+  el.textContent = '';
+  el.style.whiteSpace = 'pre-line';
+  const timer = setInterval(() => {
+    el.textContent += text[i];
+    i++;
+    if (i >= text.length) {
+      clearInterval(timer);
+      if (callback) callback();
+    }
+  }, speed);
+}
+
+// ============================================================
+// CONFETTI
+// ============================================================
+function spawnConfetti() {
+  const colors = ['#ff4da6','#b44dff','#00f5ff','#ffcc00','#39ff14','#ff8c00'];
+  for (let i = 0; i < 80; i++) {
+    setTimeout(() => {
+      const c = document.createElement('div');
+      c.className = 'confetti-piece';
+      c.style.left = Math.random()*100 + 'vw';
+      c.style.background = colors[Math.floor(Math.random()*colors.length)];
+      c.style.width = (6+Math.random()*10) + 'px';
+      c.style.height = (6+Math.random()*10) + 'px';
+      c.style.borderRadius = Math.random()>0.5 ? '50%' : '2px';
+      c.style.animationDuration = (2+Math.random()*3) + 's';
+      c.style.animationDelay = Math.random()*2 + 's';
+      document.body.appendChild(c);
+      setTimeout(() => c.remove(), 6000);
+    }, i*50);
+  }
+}
+
+// ============================================================
+// END SCREEN
+// ============================================================
+function replayChaos() {
+  location.reload();
+}
+
+function exitFinal() {
+  document.getElementById('exit-msg').textContent = 'Thanks for surviving Birthday Rage Simulator. 👾';
+  spawnConfetti();
+}
+
+function stopMemes() {
+  if (memeInterval) { clearInterval(memeInterval); memeInterval = null; }
+  document.getElementById('meme-container').innerHTML = '';
+  document.getElementById('escape-btn').style.display = 'none';
+}
+
+// ============================================================
+// INIT
+// ============================================================
+window.addEventListener('load', () => {
+  // Slight delay so fonts load
+  setTimeout(() => {
+    document.getElementById('screen-1').classList.add('active');
+  }, 100);
+});
+</script>
+</body>
+</html>
