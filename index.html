@@ -227,6 +227,26 @@
   }
   #escape-btn:hover { border-color: var(--red); color: var(--red); }
 
+  /* ── AUDIO TOGGLE BUTTON ── */
+  #audio-btn {
+    position: fixed;
+    bottom: 58px;
+    left: 20px;
+    z-index: 998;
+    padding: 8px 16px;
+    border: 1px solid var(--purple);
+    color: var(--purple);
+    background: transparent;
+    border-radius: 8px;
+    cursor: pointer;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.75rem;
+    transition: all 0.2s;
+    display: none;
+  }
+  #audio-btn:hover { border-color: var(--cyan); color: var(--cyan); }
+  #audio-btn.muted { border-color: var(--dim); color: var(--dim); }
+
   #flash { position: fixed; top:0; left:0; width:100%; height:100%; pointer-events:none; z-index:9999; opacity:0; }
   #flash.red { background: rgba(255,20,50,0.3); animation: flash 0.2s ease; }
   #flash.white { background: rgba(255,255,255,0.7); animation: flash 0.3s ease; }
@@ -386,6 +406,7 @@
 <div id="meme-container"></div>
 <div id="achievement-container"></div>
 <button id="escape-btn" onclick="handleEscape()">[ EXIT WEBSITE ]</button>
+<button id="audio-btn" onclick="toggleMute()">♪ MUTE</button>
 
 <!-- SCREEN 1 -->
 <div class="screen active" id="screen-1">
@@ -431,7 +452,7 @@
   </div>
 </div>
 
-<!-- SCREEN 4: MOVING BUTTON — fixed layout -->
+<!-- SCREEN 4: MOVING BUTTON -->
 <div class="screen" id="screen-4">
   <div class="panel">
     <div class="step-badge">STEP 04 / 14</div>
@@ -441,7 +462,6 @@
 
     <button class="btn btn-cyan" onclick="clickYes()">Yes</button>
 
-    <!-- arena that constrains the moving button -->
     <div id="moving-arena">
       <button id="moving-yes"
         onmouseenter="moveButton()"
@@ -624,7 +644,339 @@
 </div>
 
 <script>
-// ── STATE ──
+// ══════════════════════════════════════════════
+//  WEB AUDIO ENGINE
+// ══════════════════════════════════════════════
+let audioCtx = null;
+let masterGain = null;
+let isMuted = false;
+let audioStarted = false;
+let chaosLoopHandle = null;
+let birthdayLoopHandle = null;
+let chaosGain = null;
+let birthdayGain = null;
+
+// --- Init AudioContext on first user gesture ---
+function initAudio() {
+  if (audioCtx) return;
+  audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  masterGain = audioCtx.createGain();
+  masterGain.gain.value = 0.55;
+  masterGain.connect(audioCtx.destination);
+
+  chaosGain = audioCtx.createGain();
+  chaosGain.gain.value = 1;
+  chaosGain.connect(masterGain);
+
+  birthdayGain = audioCtx.createGain();
+  birthdayGain.gain.value = 0;
+  birthdayGain.connect(masterGain);
+
+  document.getElementById('audio-btn').style.display = 'block';
+}
+
+// --- Mute toggle ---
+function toggleMute() {
+  isMuted = !isMuted;
+  if (audioCtx) {
+    masterGain.gain.setTargetAtTime(isMuted ? 0 : 0.55, audioCtx.currentTime, 0.1);
+  }
+  const btn = document.getElementById('audio-btn');
+  btn.textContent = isMuted ? '♪ UNMUTE' : '♪ MUTE';
+  btn.classList.toggle('muted', isMuted);
+}
+
+// ── CHAOS SYNTH TRACK ──────────────────────────
+// A moody, glitchy looping synth pad + bass pulse
+// built purely from oscillators, filters, and LFO
+let chaosActive = false;
+
+function startChaosTrack() {
+  if (!audioCtx || chaosActive) return;
+  chaosActive = true;
+
+  scheduleChaosLoop();
+}
+
+function stopChaosTrack() {
+  chaosActive = false;
+  if (chaosLoopHandle) { clearTimeout(chaosLoopHandle); chaosLoopHandle = null; }
+}
+
+// Bass note sequence (frequencies in Hz)
+const bassSeq = [55, 55, 49, 52, 55, 58, 55, 49]; // A1 A1 G1 Ab1 loop
+const bassRhythm = [0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5]; // each note length in beats
+const BPM = 120;
+const BEAT = 60 / BPM; // 0.5s per beat
+
+// Pad chord: stacked detuned saws for atmosphere
+const padFreqs = [110, 138.59, 164.81, 220]; // A2, C#3, E3, A3
+
+function scheduleChaosLoop() {
+  if (!chaosActive || !audioCtx) return;
+  const loopDur = bassSeq.length * BEAT; // 4 seconds per loop
+
+  playChaosBass(audioCtx.currentTime, loopDur);
+  playChaosPad(audioCtx.currentTime, loopDur);
+
+  chaosLoopHandle = setTimeout(() => scheduleChaosLoop(), loopDur * 1000);
+}
+
+function playChaosBass(startTime, dur) {
+  let t = startTime;
+  bassSeq.forEach((freq, i) => {
+    const noteDur = bassRhythm[i] * BEAT;
+
+    // Oscillator 1: sub bass
+    const osc = audioCtx.createOscillator();
+    osc.type = 'sawtooth';
+    osc.frequency.value = freq;
+
+    // Slight detune for grit
+    osc.detune.value = -5;
+
+    // Filter: low-pass for that thuddy bass feel
+    const filter = audioCtx.createBiquadFilter();
+    filter.type = 'lowpass';
+    filter.frequency.value = 400;
+    filter.Q.value = 3;
+
+    // Amp envelope
+    const env = audioCtx.createGain();
+    env.gain.setValueAtTime(0, t);
+    env.gain.linearRampToValueAtTime(0.6, t + 0.02);
+    env.gain.exponentialRampToValueAtTime(0.001, t + noteDur * 0.85);
+
+    osc.connect(filter);
+    filter.connect(env);
+    env.connect(chaosGain);
+
+    osc.start(t);
+    osc.stop(t + noteDur);
+
+    t += noteDur;
+  });
+}
+
+function playChaosPad(startTime, dur) {
+  padFreqs.forEach((freq, idx) => {
+    // Two slightly detuned oscillators per voice = fat unison
+    [-8, 8].forEach(detuneCents => {
+      const osc = audioCtx.createOscillator();
+      osc.type = idx % 2 === 0 ? 'sawtooth' : 'triangle';
+      osc.frequency.value = freq;
+      osc.detune.value = detuneCents;
+
+      // Slow filter sweep for movement
+      const filter = audioCtx.createBiquadFilter();
+      filter.type = 'lowpass';
+      filter.frequency.setValueAtTime(300, startTime);
+      filter.frequency.linearRampToValueAtTime(1200, startTime + dur * 0.5);
+      filter.frequency.linearRampToValueAtTime(300, startTime + dur);
+      filter.Q.value = 2;
+
+      // Tremolo via LFO
+      const lfo = audioCtx.createOscillator();
+      lfo.type = 'sine';
+      lfo.frequency.value = 4 + idx * 0.3; // slight variation per voice
+      const lfoGain = audioCtx.createGain();
+      lfoGain.gain.value = 0.03;
+      lfo.connect(lfoGain);
+      lfoGain.connect(osc.frequency);
+
+      // Amp: slow fade in/out each loop
+      const env = audioCtx.createGain();
+      env.gain.setValueAtTime(0, startTime);
+      env.gain.linearRampToValueAtTime(0.07, startTime + 0.4);
+      env.gain.setValueAtTime(0.07, startTime + dur - 0.3);
+      env.gain.linearRampToValueAtTime(0, startTime + dur);
+
+      osc.connect(filter);
+      filter.connect(env);
+      env.connect(chaosGain);
+
+      lfo.start(startTime);
+      osc.start(startTime);
+      lfo.stop(startTime + dur + 0.1);
+      osc.stop(startTime + dur + 0.1);
+    });
+  });
+
+  // Extra glitchy high arpeggio on top
+  const arpFreqs = [440, 523.25, 587.33, 659.25, 698.46, 783.99, 880];
+  arpFreqs.forEach((freq, i) => {
+    const t = startTime + i * (dur / arpFreqs.length);
+    const osc = audioCtx.createOscillator();
+    osc.type = 'square';
+    osc.frequency.value = freq;
+
+    const filter = audioCtx.createBiquadFilter();
+    filter.type = 'bandpass';
+    filter.frequency.value = freq;
+    filter.Q.value = 5;
+
+    const env = audioCtx.createGain();
+    env.gain.setValueAtTime(0, t);
+    env.gain.linearRampToValueAtTime(0.04, t + 0.02);
+    env.gain.exponentialRampToValueAtTime(0.001, t + 0.18);
+
+    osc.connect(filter);
+    filter.connect(env);
+    env.connect(chaosGain);
+
+    osc.start(t);
+    osc.stop(t + 0.2);
+  });
+}
+
+// ── TRANSITION: CHAOS → BIRTHDAY ──────────────
+function transitionToBirthday() {
+  if (!audioCtx) return;
+
+  // Fade out chaos over 2 seconds
+  chaosGain.gain.setTargetAtTime(0, audioCtx.currentTime, 0.6);
+  stopChaosTrack();
+
+  // Fade in birthday after 1.5s
+  setTimeout(() => {
+    birthdayGain.gain.setTargetAtTime(1, audioCtx.currentTime, 0.5);
+    startBirthdayTrack();
+  }, 1500);
+}
+
+// ── HAPPY BIRTHDAY MELODY ──────────────────────
+// Notes: frequency, duration (in beats at 90 BPM)
+// "Happy Birthday to You" — classic melody
+const HB_BPM = 90;
+const HB_BEAT = 60 / HB_BPM;
+
+// [freq_hz, beats] — 0 = rest
+const happyBirthdayNotes = [
+  // "Hap-py birth-day to you"
+  [392.00, 0.75], [392.00, 0.25], [440.00, 1.0], [392.00, 1.0],
+  [523.25, 1.0],  [493.88, 2.0],
+  // "Hap-py birth-day to you"
+  [392.00, 0.75], [392.00, 0.25], [440.00, 1.0], [392.00, 1.0],
+  [587.33, 1.0],  [523.25, 2.0],
+  // "Hap-py birth-day dear Sha-a-ark"
+  [392.00, 0.75], [392.00, 0.25], [784.00, 1.0], [659.25, 1.0],
+  [523.25, 1.0],  [493.88, 1.0],  [440.00, 1.5], [0, 0.5],
+  // "Hap-py birth-day to you"
+  [698.46, 0.75], [698.46, 0.25], [659.25, 1.0], [523.25, 1.0],
+  [587.33, 1.0],  [523.25, 2.0],
+];
+
+let birthdayActive = false;
+
+function startBirthdayTrack() {
+  if (!audioCtx || birthdayActive) return;
+  birthdayActive = true;
+  scheduleBirthdayLoop();
+}
+
+function stopBirthdayTrack() {
+  birthdayActive = false;
+  if (birthdayLoopHandle) { clearTimeout(birthdayLoopHandle); birthdayLoopHandle = null; }
+}
+
+function scheduleBirthdayLoop() {
+  if (!birthdayActive || !audioCtx) return;
+  const totalBeats = happyBirthdayNotes.reduce((s, n) => s + n[1], 0);
+  const loopDur = totalBeats * HB_BEAT;
+
+  playHappyBirthday(audioCtx.currentTime, loopDur);
+
+  birthdayLoopHandle = setTimeout(() => scheduleBirthdayLoop(), (loopDur + 1.0) * 1000); // 1s gap between loops
+}
+
+function playHappyBirthday(startTime, totalDur) {
+  let t = startTime;
+
+  happyBirthdayNotes.forEach(([freq, beats]) => {
+    const dur = beats * HB_BEAT;
+
+    if (freq === 0) { t += dur; return; } // rest
+
+    // Main melody: warm sine with slight shimmer
+    const osc = audioCtx.createOscillator();
+    osc.type = 'sine';
+    osc.frequency.value = freq;
+
+    // Sub-octave for warmth
+    const subOsc = audioCtx.createOscillator();
+    subOsc.type = 'triangle';
+    subOsc.frequency.value = freq / 2;
+    subOsc.detune.value = 5; // tiny detune = shimmer
+
+    // Reverb-ish: short delay
+    const delay = audioCtx.createDelay();
+    delay.delayTime.value = 0.12;
+    const delayGain = audioCtx.createGain();
+    delayGain.gain.value = 0.18;
+
+    // Amp envelope
+    const env = audioCtx.createGain();
+    env.gain.setValueAtTime(0, t);
+    env.gain.linearRampToValueAtTime(0.35, t + 0.04);
+    env.gain.setValueAtTime(0.35, t + dur * 0.7);
+    env.gain.exponentialRampToValueAtTime(0.001, t + dur * 0.98);
+
+    const subEnv = audioCtx.createGain();
+    subEnv.gain.setValueAtTime(0, t);
+    subEnv.gain.linearRampToValueAtTime(0.12, t + 0.04);
+    subEnv.gain.exponentialRampToValueAtTime(0.001, t + dur * 0.95);
+
+    osc.connect(env);
+    osc.connect(delay);
+    delay.connect(delayGain);
+    delayGain.connect(birthdayGain);
+    env.connect(birthdayGain);
+
+    subOsc.connect(subEnv);
+    subEnv.connect(birthdayGain);
+
+    osc.start(t);
+    subOsc.start(t);
+    osc.stop(t + dur + 0.05);
+    subOsc.stop(t + dur + 0.05);
+
+    t += dur;
+  });
+
+  // Soft chord backing: A minor → F → C → E  (birthday vibe)
+  const chords = [
+    [261.63, 329.63, 392.00], // C major
+    [349.23, 440.00, 523.25], // F major
+    [329.63, 392.00, 493.88], // G major
+    [261.63, 329.63, 392.00], // C major
+  ];
+  const chordDur = totalDur / chords.length;
+
+  chords.forEach((chord, ci) => {
+    const ct = startTime + ci * chordDur;
+    chord.forEach(freq => {
+      const osc = audioCtx.createOscillator();
+      osc.type = 'triangle';
+      osc.frequency.value = freq;
+      osc.detune.value = (Math.random() - 0.5) * 4;
+
+      const env = audioCtx.createGain();
+      env.gain.setValueAtTime(0, ct);
+      env.gain.linearRampToValueAtTime(0.06, ct + 0.3);
+      env.gain.setValueAtTime(0.06, ct + chordDur - 0.3);
+      env.gain.linearRampToValueAtTime(0, ct + chordDur);
+
+      osc.connect(env);
+      env.connect(birthdayGain);
+      osc.start(ct);
+      osc.stop(ct + chordDur + 0.1);
+    });
+  });
+}
+
+// ══════════════════════════════════════════════
+//  ORIGINAL GAME LOGIC (unchanged)
+// ══════════════════════════════════════════════
 let currentScreen = 1;
 let clickCount = 0;
 let memeInterval = null;
@@ -634,7 +986,6 @@ let bossClickCount = 0;
 let escapeTried = false;
 let startTime = Date.now();
 
-// ── PARTICLES ──
 const emojis = ['💜','🩷','⭐','✨','💫','🌸','💥','🎂','🎉','🦈','🦈','🦈','🦈'];
 function spawnParticles() {
   const container = document.getElementById('particles');
@@ -655,14 +1006,12 @@ function spawnParticles() {
 setInterval(spawnParticles, 5000);
 spawnParticles();
 
-// ── STATUS BAR ──
 setInterval(() => {
   const el = document.getElementById('status-time');
   const s = Math.floor((Date.now()-startTime)/1000);
   el.textContent = `${String(Math.floor(s/60)).padStart(2,'0')}:${String(s%60).padStart(2,'0')}`;
 }, 1000);
 
-// ── MEME POPUPS ──
 const memes = [
   { from: 'System Alert', msg: 'edi wow' },
   { from: 'Notification', msg: 'sana all 😭' },
@@ -694,7 +1043,6 @@ function startMemes() {
   showMeme();
 }
 
-// ── ACHIEVEMENTS ──
 function unlockAchievement(title, icon='🏆') {
   if (achievementsEarned.includes(title)) return;
   achievementsEarned.push(title);
@@ -706,14 +1054,12 @@ function unlockAchievement(title, icon='🏆') {
   setTimeout(() => div.remove(), 4000);
 }
 
-// ── FLASH ──
 function flash(type='red') {
   const el = document.getElementById('flash');
   el.className = type;
   setTimeout(() => el.className = '', 400);
 }
 
-// ── SCREEN NAVIGATION ──
 function goTo(n) {
   document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
   if (n === 'overload') document.getElementById('screen-overload').classList.add('active');
@@ -726,7 +1072,6 @@ function goTo(n) {
   clickCount++;
   if (clickCount >= 10) unlockAchievement('Survived 10 Ragebait Clicks','💀');
 
-  // Trigger screen-specific init
   if (n === 12) setTimeout(startSimon, 300);
   if (n === 13) setTimeout(startTypingTest, 300);
   if (n === 14) setTimeout(buildConfessions, 300);
@@ -734,16 +1079,23 @@ function goTo(n) {
 
 // ── SCREEN 1 ──
 function entry(choice) {
+  // First user gesture → init audio
+  initAudio();
+
   const msgs = {
     patient: 'Noted. Patience level: questionable. Proceeding anyway.',
     handle: 'Bold statement. I will test that claim.',
     regret: '"Too late." — System',
   };
   document.getElementById('entry-response').textContent = msgs[choice];
-  setTimeout(() => { startMemes(); goTo(2); startVerification(); }, 1500);
+  setTimeout(() => {
+    startMemes();
+    startChaosTrack(); // 🎵 chaos music begins
+    goTo(2);
+    startVerification();
+  }, 1500);
 }
 
-// ── SCREEN 2 ──
 const verifyLogs = [
   { text: '> Initializing chaos module...', cls:'info', delay:300 },
   { text: '> Checking patience level...', cls:'warn', delay:800 },
@@ -769,7 +1121,6 @@ function startVerification() {
   setTimeout(() => { document.getElementById('verify-result').style.display = 'block'; }, 5000);
 }
 
-// ── SCREEN 3 ──
 function rageBait(choice) {
   const el = document.getElementById('ragebait-response');
   if (choice === 'yes') {
@@ -782,7 +1133,6 @@ function rageBait(choice) {
   }
 }
 
-// ── SCREEN 4: MOVING BUTTON (fixed) ──
 function moveButton() {
   const btn = document.getElementById('moving-yes');
   const arena = document.getElementById('moving-arena');
@@ -790,20 +1140,16 @@ function moveButton() {
   const ah = arena.clientHeight;
   const bw = btn.offsetWidth;
   const bh = btn.offsetHeight;
-
-  // Keep button fully inside the arena with 8px padding
   const pad = 8;
   const maxX = aw - bw - pad;
   const maxY = ah - bh - pad;
   const nx = pad + Math.random() * maxX;
   const ny = pad + Math.random() * maxY;
-
   btn.style.left = nx + 'px';
   btn.style.top  = ny + 'px';
 }
 
 function initMovingButton() {
-  // Center the button inside the arena on load
   const btn = document.getElementById('moving-yes');
   const arena = document.getElementById('moving-arena');
   const aw = arena.clientWidth;
@@ -824,16 +1170,14 @@ function clickYes() {
   setTimeout(() => { goTo(5); startFakeLoading(); }, 1500);
 }
 
-// ── SCREEN 5: FAKE LOADING (extended timings) ──
-// Each entry: [targetPct, holdMs, label]
 const loadingSteps = [
   [0,   200,    'Initializing birthday module...'],
   [12,  700,    'Calculating your patience score...'],
   [34,  700,    'Downloading meme database...'],
-  [87,  30000,  'Uploading your chaos tolerance...'],   // 30 s hold at 87%
-  [5,   10000,  'Reversing progress because why not...'], // drops back, holds 10 s
-  [99,  25000,  'Buffering surprise...'],               // 25 s tease at 99%
-  [1,   10000,  'I am testing your patience…'],       // cruel drop, holds 10 s
+  [87,  30000,  'Uploading your chaos tolerance...'],
+  [5,   10000,  'Reversing progress because why not...'],
+  [99,  25000,  'Buffering surprise...'],
+  [1,   10000,  'I am testing your patience…'],
   [66,  800,    'Almost there (not really)...'],
   [100, 600,    'Final checks... done!'],
 ];
@@ -860,11 +1204,9 @@ function runProgress() {
   msgEl.textContent = msg;
 
   loadIdx++;
-  // Wait for the CSS transition (≈800ms) + the intended hold time, then next step
   setTimeout(runProgress, 800 + holdMs);
 }
 
-// ── SCREEN 7 ──
 function captchaAnswer(q, opt) {
   captchaAnswers[q] = opt;
   document.querySelectorAll(`#captcha-q${q} .captcha-opt`).forEach(el => el.classList.remove('selected'));
@@ -888,14 +1230,13 @@ function submitCaptcha() {
   setTimeout(() => { goTo(8); startWarnings(); }, 1800);
 }
 
-// ── SCREEN 8 ──
 const warningTexts = [
   '⚠ Emotional Damage Detected',
   '⚠ Cringe levels rising rapidly',
   '⚠ User attempting escape — BLOCKED',
   '⚠ Emotion firewall activated',
   '⚠ Patience reserves critically low',
-  '⚠ Error: Enabling may chance ba akez? hihi module',
+  '⚠ Error: Enabling Pancit Canton module',
 ];
 
 function startWarnings() {
@@ -914,7 +1255,6 @@ function startWarnings() {
   });
 }
 
-// ── SCREEN 9 ──
 function escapeTrap() {
   const el = document.getElementById('escape-trap-msg');
   el.innerHTML = '<span style="color:var(--red)">Access denied.</span>';
@@ -935,7 +1275,6 @@ function handleEscape() {
   escapeTried = true;
 }
 
-// ── SCREEN 10 ──
 const allAchievements = [
   { title: 'Survived 10 Ragebait Clicks', icon: '💀', desc: 'You have exceptional pain tolerance.' },
   { title: 'Professional Patience Tester', icon: '🧘', desc: 'Certified by the Rage Simulator Institute.' },
@@ -960,7 +1299,6 @@ function buildAchievements() {
   unlockAchievement('Professional Patience Tester','🧘');
 }
 
-// ── SCREEN 11 ──
 const bossMsgs = [
   'Nope. Try again.',
   'Also wrong. Keep going.',
@@ -982,7 +1320,6 @@ function finalBoss(btn) {
   }
 }
 
-// ── SCREEN 12: SIMON SAYS ──
 const simonRounds = [
   { instruction: 'Simon says: Click the PINK button.', buttons: ['PINK','CYAN','PURPLE'], correct: 'PINK', colors: ['btn-pink','btn-cyan','btn-purple'] },
   { instruction: 'Simon says: Do NOT click anything for 3 seconds.', buttons: [], correct: '__wait__', colors: [] },
@@ -1010,7 +1347,6 @@ function runSimonRound() {
   btnWrap.innerHTML = '';
 
   if (round.correct === '__wait__') {
-    // No buttons — just wait 3s then auto-advance
     document.getElementById('simon-result').innerHTML = '<span style="color:var(--dim)">waiting...</span>';
     simonWaitTimer = setTimeout(() => {
       document.getElementById('simon-result').innerHTML = '<span style="color:var(--green)">✓ You waited. Impressive restraint.</span>';
@@ -1031,7 +1367,6 @@ function runSimonRound() {
 function simonAnswer(round, clicked, btnEl) {
   const res = document.getElementById('simon-result');
   if (round.correct === '__any__') {
-    // Simon didn't say — any click is "wrong" (haha gotcha)
     res.innerHTML = '<span style="color:var(--red)">Simon didn\'t say! 😈 Proceeding anyway because rules don\'t matter here.</span>';
     flash('red');
     simonIdx++;
@@ -1048,7 +1383,6 @@ function simonAnswer(round, clicked, btnEl) {
   }
 }
 
-// ── SCREEN 13: TYPING TEST ──
 const typingPrompts = [
   'happy birthday to you 🎂',
   'I survived the birthday rage simulator and I am not okay',
@@ -1084,7 +1418,6 @@ function checkTyping() {
   }
 }
 
-// ── SCREEN 14: FINAL CONFESSION ──
 const confessions = [
   'This website was actually kind of funny',
   'I got annoyed at least once',
@@ -1136,7 +1469,6 @@ function submitConfession() {
   setTimeout(() => startOverload(), 2000);
 }
 
-// ── OVERLOAD ──
 const overloadLogs = [
   { text: '> SYSTEM OVERLOAD DETECTED', cls:'err' },
   { text: '> Chaos module: shutting down...', cls:'warn' },
@@ -1172,11 +1504,11 @@ function startOverload() {
       document.getElementById('screen-final').classList.add('active');
       startFinalScreen();
       stopMemes();
+      transitionToBirthday(); // 🎵 switch to Happy Birthday
     }, 1500);
   }, 3500);
 }
 
-// ── FINAL ──
 const finalMessage = `I made this website just to make you smile and annoy you a little at the same time 😭(But I dont know if na pangiti ba kita or na bwiset)If you ask me kung kailan ko to ginawa nung nakaraang buwan pa tlaga, ewan ko kung alala mo pa nung nag tanong ako kung mahaba ba pasensya mo, yun yung time na yun na sinimulan ko to kahit super busy ng tao na ito anteh nag gawa paring mag singit ng kaunting time sa kalokohan na ito.\n\nIf you ask me why pa ako gumawa ng kalokohan na ito, actually naisip ko dati na wag na because sabi mo ayaw mo maalala birthday mo but gurllllll,wala parin kasi binabati ka parin ni quen, magpapatalo ba ako?!?! syempre hindi!🙄.\n\n Im thankful sau teh pero secret lng kung saan, I'm glad na nakilala kita Sha na amaze lng ako sa personality mo gravity(grabe teh),amazing person ka talaga bahala ka kung sabihin mong hindi, basta para sakin you are an amazing person grabe ang strong, like it nhayed🤏 🤏.\n\n Walang matatapos na friendship dito hahanapin tlga kita sa Palawan anteh jk, pero wag nmn sana maawa ka sakin char😜(Sha: sino ka ba para kaawaan?!).\n\nSana di ka magbago anteh keep ur hair straight and long para slayy wala na ako masabi tlga, im not good at words but im trying my best lng here(I know that I dont have to, pero bakit ba? gusto ko eh)ayun lng.\n\n Sana maging kind si mother earth sau for the rest of your life Sha, and I hope your day is really good, and your year even better.No pressure, just genuinely wishing you happiness today and for the rest of ur life Sha.🌸\n\n\n\n HAPPY BIRTHDAY SHARK!🦈\n(na cringe na yan siya hihi pake ko blee😛). `;
 
 function startFinalScreen() {
@@ -1187,7 +1519,6 @@ function startFinalScreen() {
       document.getElementById('final-sig').style.opacity = '1';
       document.getElementById('final-sig').textContent = '— Made with chaos and genuine care 💜';
       spawnConfetti();
-      // Show continue button — no auto-redirect, let her read at her own pace
       setTimeout(() => {
         document.getElementById('final-continue-wrap').style.display = 'block';
       }, 800);
@@ -1206,7 +1537,6 @@ function typewriterEffect(el, text, speed, callback) {
   }, speed);
 }
 
-// ── CONFETTI ──
 function spawnConfetti() {
   const colors = ['#ff4da6','#b44dff','#00f5ff','#ffcc00','#39ff14','#ff8c00'];
   for (let i = 0; i < 80; i++) {
@@ -1226,7 +1556,6 @@ function spawnConfetti() {
   }
 }
 
-// ── END ──
 function replayChaos() { location.reload(); }
 function exitFinal() {
   document.getElementById('exit-msg').textContent = 'Thanks for surviving Birthday Rage Simulator. 👾';
@@ -1242,12 +1571,10 @@ function stopMemes() {
 window.addEventListener('load', () => {
   setTimeout(() => {
     document.getElementById('screen-1').classList.add('active');
-    // Pre-position the moving button once fonts/layout settle
     requestAnimationFrame(() => setTimeout(initMovingButton, 100));
   }, 100);
 });
 
-// Re-init moving button whenever screen-4 becomes active
 const observer = new MutationObserver(() => {
   if (document.getElementById('screen-4').classList.contains('active')) {
     setTimeout(initMovingButton, 50);
