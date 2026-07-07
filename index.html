@@ -18,18 +18,18 @@
    ============================================ */
 
 :root{
-  --void: #0d0c10;
-  --void-2: #121016;
-  --card: #17151c;
-  --card-hover: #201d27;
-  --card-border: rgba(255,255,255,0.06);
-  --gold: #e8b34c;
-  --gold-soft: rgba(232,179,76,0.15);
-  --rose: #e8607a;
-  --rose-soft: rgba(232,96,122,0.18);
+  --void: #0c100d;
+  --void-2: #101610;
+  --card: #151c15;
+  --card-hover: #1d271d;
+  --card-border: rgba(255, 255, 255, 0.06);
+  --gold: #1db954;
+  --gold-soft: rgba(76, 232, 79, 0.15);
+  --rose: #46e40d;
+  --rose-soft: rgba(116, 232, 96, 0.18);
   --text: #f5f3f0;
-  --text-muted: #9b95a3;
-  --text-faint: #5f5a68;
+  --text-muted: #97a395;
+  --text-faint: #5a685d;
   --display: 'Fraunces', serif;
   --body: 'Inter', sans-serif;
   --mono: 'JetBrains Mono', monospace;
@@ -80,7 +80,7 @@ a{color:inherit;text-decoration:none;}
 .note-particle{
   position:absolute; bottom:-40px; font-size:18px; color:var(--gold);
   opacity:0; animation: floatUp linear infinite;
-  filter: drop-shadow(0 0 6px rgba(232,179,76,0.5));
+  filter: drop-shadow(0 0 6px rgba(94, 232, 76, 0.5));
 }
 @keyframes floatUp{
   0%{ transform: translateY(0) translateX(0) rotate(0deg); opacity:0; }
@@ -116,13 +116,13 @@ a{color:inherit;text-decoration:none;}
 }
 .login-card{
   width:100%; max-width:400px;
-  background: linear-gradient(180deg, rgba(23,21,28,0.9), rgba(23,21,28,0.7));
+  background: linear-gradient(180deg, rgba(21, 28, 22, 0.9), rgba(21, 28, 22, 0.7));
   backdrop-filter: blur(24px);
   -webkit-backdrop-filter: blur(24px);
   border: 1px solid var(--card-border);
   border-radius: 20px;
   padding: 40px 32px 32px;
-  box-shadow: 0 20px 60px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.02) inset;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255, 255, 255, 0.02) inset;
   position:relative;
   animation: cardRise 0.9s var(--ease) both;
 }
@@ -133,7 +133,7 @@ a{color:inherit;text-decoration:none;}
 .login-icon{
   width:56px; height:56px; margin: 0 auto 20px;
   border-radius:50%;
-  background: radial-gradient(circle at 30% 30%, var(--gold), #a8781f);
+  background: radial-gradient(circle at 30% 30%, var(--gold), #1fa82f);
   display:flex; align-items:center; justify-content:center;
   font-size:24px;
   box-shadow: 0 0 30px var(--gold-soft), 0 4px 20px rgba(0,0,0,0.4);
@@ -165,12 +165,12 @@ a{color:inherit;text-decoration:none;}
 }
 .enter-btn{
   width:100%; padding:14px; border-radius:10px; margin-top:8px;
-  background: linear-gradient(135deg, var(--gold), #d99a2b);
+  background: linear-gradient(135deg, var(--gold), #1db954);
   color:#141216; font-weight:700; font-size:14.5px; letter-spacing:0.01em;
   transition: transform 0.2s var(--ease), box-shadow 0.2s var(--ease);
   box-shadow: 0 8px 24px rgba(232,179,76,0.25);
 }
-.enter-btn:hover{ transform: translateY(-2px); box-shadow: 0 12px 30px rgba(232,179,76,0.35); }
+.enter-btn:hover{ transform: translateY(-2px); box-shadow: 0 12px 30px rgba(76, 232, 81, 0.35); }
 .enter-btn:active{ transform: translateY(0); }
 .enter-btn:disabled{ opacity:0.6; cursor:default; transform:none; }
 
@@ -196,7 +196,7 @@ a{color:inherit;text-decoration:none;}
 .success-overlay.show{ opacity:1; pointer-events:all; }
 .check-circle{
   width:80px; height:80px; border-radius:50%;
-  background: radial-gradient(circle at 30% 30%, var(--gold), #a8781f);
+  background: radial-gradient(circle at 30% 30%, var(--gold), #1db954);
   display:flex; align-items:center; justify-content:center; font-size:36px;
   margin-bottom:24px; box-shadow: 0 0 50px var(--gold-soft);
   transform: scale(0); animation: popIn 0.5s var(--ease) forwards 0.15s;
@@ -459,8 +459,8 @@ a{color:inherit;text-decoration:none;}
 <!-- ============ PAGE 1: LOGIN ============ -->
 <section class="view active" id="view-login">
   <div class="login-card">
-    <div class="login-icon">🎂</div>
-    <h1 class="login-title">Birthday Access Portal 🎂</h1>
+    <div class="login-icon"><img src="img/spotify-social-media-icon-design-template-vector-png_127005-removebg-preview.png" height="100px"></div>
+    <h1 class="login-title" style="font-family:'Gill Sans', 'Gill Sans MT', Calibri, 'Trebuchet MS', sans-serif">Spotify®</h1>
     <p class="login-subtitle">This page is reserved for one special person.</p>
 
     <form id="login-form">
@@ -476,7 +476,7 @@ a{color:inherit;text-decoration:none;}
       <div class="error-msg" id="error-msg">That's not quite it — try again 🎵</div>
     </form>
 
-    <div class="login-footer">P.S. This birthday website contains 0 fake birthdays and 100% verified information.</div>
+    <div class="login-footer">This site is protected by reCAPTCHA and the Google Privacy Policy and Terms of Service apply CHAROT.</div>
   </div>
 </section>
 
@@ -492,7 +492,7 @@ a{color:inherit;text-decoration:none;}
     <aside class="sidebar">
       <div class="sidebar-logo"><div class="dot"></div><span>FOR YOU</span></div>
       <nav class="sidebar-nav">
-        <a href="#sec-favorites" class="active">💛 Your Favorites</a>
+        <a href="#sec-favorites" class="active">💚 Your Favorites</a>
         <a href="#sec-remind">✨ Reminds Me Of You</a>
         <a href="#sec-birthday">🎉 Birthday Playlist</a>
       </nav>
